@@ -32,19 +32,20 @@ tasks.withType<KotlinCompile> {
 }
 
 publishing {
-    repositories {
-        maven {
-            name = "repo"
-            url = uri("https://maven.pkg.github.com/Layercraft/PacketLib")
-            credentials {
-                username = project.findProperty("gpr.user") as String? ?: System.getenv("USERNAME")
-                password = project.findProperty("gpr.key") as String? ?: System.getenv("TOKEN")
-            }
-        }
-    }
     publications {
-        register<MavenPublication>("gpr") {
+        create<MavenPublication>("maven") {
+            groupId = project.group.toString()
+            artifactId = project.name
+            version = project.version.toString()
+
             from(components["java"])
+        }
+        repositories {
+            maven {
+                name = "cafestubeRepository"
+                credentials(PasswordCredentials::class)
+                url = uri("https://repo.cafestu.be/repository/maven-public-snapshots/")
+            }
         }
     }
 }
