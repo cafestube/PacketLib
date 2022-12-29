@@ -29,7 +29,6 @@ tasks.test {
 
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "17"
-    kotlinOptions.freeCompilerArgs = listOf("-Xuse-k2")
 }
 
 publishing {
