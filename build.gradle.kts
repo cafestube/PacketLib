@@ -13,6 +13,10 @@ repositories {
     mavenCentral()
 }
 
+java {
+    withSourcesJar()
+}
+
 dependencies {
     implementation("io.ktor:ktor-io-jvm:2.2.1")
 
