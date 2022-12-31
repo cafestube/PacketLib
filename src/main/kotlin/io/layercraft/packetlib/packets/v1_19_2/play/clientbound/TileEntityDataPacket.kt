@@ -5,7 +5,6 @@ import io.layercraft.packetlib.serialization.MinecraftProtocolDeserializeInterfa
 import io.layercraft.packetlib.serialization.MinecraftProtocolSerializeInterface
 import io.layercraft.packetlib.types.NBT
 import io.layercraft.packetlib.types.Position
-import io.layercraft.packetlib.utils.NBT
 
 /**
  * Block Entity Data | 0x07 | play | clientbound

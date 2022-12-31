@@ -5,7 +5,6 @@ import io.layercraft.packetlib.serialization.MinecraftProtocolDeserializeInterfa
 import io.layercraft.packetlib.serialization.MinecraftProtocolSerializeInterface
 import io.layercraft.packetlib.types.NBT
 import io.layercraft.packetlib.types.Position
-import io.layercraft.packetlib.utils.NBT
 
 /**
  * Login (play) | 0x25 | play | clientbound

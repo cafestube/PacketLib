@@ -28,6 +28,8 @@ data class SuccessPacket(
         override fun serialize(output: MinecraftProtocolSerializeInterface<*>, value: SuccessPacket) {
             output.writeUUID(value.uuid)
             output.writeString(value.username)
+            //Manual fix - not generated
+            output.writeVarInt(0)
         }
     }
 }
