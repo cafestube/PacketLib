@@ -18,7 +18,6 @@ java {
 }
 
 dependencies {
-    implementation("io.ktor:ktor-io-jvm:2.2.1")
 
     // test with kotlin reflection
     testImplementation(kotlin("reflect"))
