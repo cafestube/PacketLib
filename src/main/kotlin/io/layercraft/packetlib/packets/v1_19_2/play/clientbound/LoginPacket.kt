@@ -8,7 +8,7 @@ import io.layercraft.packetlib.types.Position
 import io.layercraft.packetlib.utils.NBT
 
 /**
- *  | 0x25 | play | clientbound
+ * Login (play) | 0x25 | play | clientbound
  *
  * @property entityId entityId
  * @property isHardcore isHardcore
