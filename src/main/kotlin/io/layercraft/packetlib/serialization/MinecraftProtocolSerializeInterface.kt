@@ -45,8 +45,6 @@ interface MinecraftProtocolSerializeInterface<O> {
         input.forEach { encoder(it, this) }
     }
 
-    fun writeChunkBlockEntity(chunkBlockEntity: ChunkBlockEntity) = ChunkBlockEntity.write(chunkBlockEntity, this)
-
     fun writeRemainingByteArray(input: ByteArray) = writeBytes(input)
     fun <T> writeRemainingArray(input: List<T>, encoder: (value: T, output: MinecraftProtocolSerializeInterface<O>) -> Unit) = input.forEach { encoder(it, this) }
 

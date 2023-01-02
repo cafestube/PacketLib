@@ -74,5 +74,4 @@ interface MinecraftProtocolDeserializeInterface<I> {
         return list.toByteArray()
     }
 
-    fun readChunkBlockEntity(): ChunkBlockEntity = ChunkBlockEntity.read(this)
 }
