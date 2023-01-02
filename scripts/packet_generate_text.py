@@ -102,6 +102,12 @@ kotlin_types_wrapper = {
         "serialize": "writePosition(%s)",
         "import": "import io.layercraft.packetlib.types.Position"
     },
+    "chunkBlockEntity": {
+        "type": "ChunkBlockEntity",
+        "deserialize": "readChunkBlockEntity()",
+        "serialize": "writeChunkBlockEntity(%s)",
+        "import": "import io.layercraft.packetlib.types.ChunkBlockEntity"
+    },
     "entityMetadataLoop": "native",
     "topBitSetTerminatedArray": "native",
     "bitfield": "native",
@@ -109,7 +115,6 @@ kotlin_types_wrapper = {
     "entityMetadata": "native",
     "previousMessages": "native",
     "command_node": "native",
-    "chunkBlockEntity": "native",
     "tags": "native",
     "minecraft_smelting_format": "native",
     "ingredient": "native",
@@ -643,14 +648,16 @@ data class {class_name}(
 
                     #Get last field
                     if len(clazz["fields"]) >= 1 and boolean_field_var_name not in clazz["fields"][-1] or len(clazz["fields"]) == 0:
-                        clazz["fields"] += [f"val {boolean_field_var_name}: Boolean,"]
-                        clazz["deserialize"] += [f"val {boolean_field_var_name} = {info_deserialize_var_name}.readBoolean()"]
-                        clazz["serialize"] += [f"{info_serialize_var_name}.writeBoolean({info_serialize_value_var_type}.{boolean_field_var_name})"]
-                        clazz["var_list"] += [boolean_field_var_name]
-                        clazz["docs"] += [f" * @param {boolean_field_var_name} {field_name} is present"]
+                        build_other_switch = {
+                            "compareTo": "../" + compare_to_field,
+                            "fields": {x: "bool" for x in fields.keys()},
+                         }
 
-                    deserialize += [f"{field} -> if ({boolean_field_var_name}) {info_deserialize_var_name}.{kotlin_type['deserialize']} else null"]
-                    serialize += [f"{field} -> if ({info_serialize_value_var_type}.{boolean_field_var_name}) {info_serialize_var_name}.{kotlin_type['serialize'] % (info_serialize_value_var_type + '.' + field_var_name + '!!')}"]
+                        return_value = self.generate_switch(boolean_field_var_name, build_other_switch, infos)
+                        self.add_to_clazz_field(return_value, clazz)
+
+                    deserialize += [f"{field} -> if ({boolean_field_var_name}!!) {info_deserialize_var_name}.{kotlin_type['deserialize']} else null"]
+                    serialize += [f"{field} -> if ({info_serialize_value_var_type}.{boolean_field_var_name}!!) {info_serialize_var_name}.{kotlin_type['serialize'] % (info_serialize_value_var_type + '.' + field_var_name + '!!')}"]
                     continue
 
                 other_switch = True

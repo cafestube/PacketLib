@@ -4,9 +4,11 @@ import io.layercraft.packetlib.serialization.MinecraftProtocolDeserializeInterfa
 import io.layercraft.packetlib.serialization.MinecraftProtocolSerializeInterface
 
 data class ChunkBlockEntity(
-    val chunkXz: Byte, val y: Short, val type: Int, val data: NBT,
+    val chunkXz: Byte,
+    val y: Short,
+    val type: Int,
+    val data: NBT,
 ) {
-
     companion object {
         fun read(deserializer: MinecraftProtocolDeserializeInterface<*>): ChunkBlockEntity {
             val packedXZ = deserializer.readByte()
@@ -24,5 +26,4 @@ data class ChunkBlockEntity(
             serializeInterface.writeNbt(entity.data)
         }
     }
-
 }

@@ -58,4 +58,6 @@ interface MinecraftProtocolSerializeInterface<O> {
     fun writeAngle(input: Float) = writeByte((input * 256f / 360f).toInt().toByte())
 
     fun writeNbt(input: NBT) = writeBytes(input)
+
+    fun writeChunkBlockEntity(input: ChunkBlockEntity) = ChunkBlockEntity.write(input, this)
 }
