@@ -7,12 +7,12 @@ import io.layercraft.packetlib.serialization.MinecraftProtocolSerializeInterface
 /**
  * Merchant Offers | 0x27 | play | clientbound
  *
- * @property windowId windowId
- * @property trades trades
- * @property villagerLevel villagerLevel
- * @property experience experience
- * @property isRegularVillager isRegularVillager
- * @property canRestock canRestock
+ * @param windowId windowId
+ * @param trades list of TradeListPacketTrades
+ * @param villagerLevel villagerLevel
+ * @param experience experience
+ * @param isRegularVillager isRegularVillager
+ * @param canRestock canRestock
  * @see <a href="https://wiki.vg/index.php?title=Protocol&oldid=17873#Merchant_Offers">https://wiki.vg/Protocol#Merchant_Offers</a>
  */
 
@@ -28,7 +28,7 @@ data class TradeListPacket(
     companion object : PacketSerializer<TradeListPacket> {
         override fun deserialize(input: MinecraftProtocolDeserializeInterface<*>): TradeListPacket {
             val windowId = input.readVarInt()
-            val trades = input.readVarIntArray { arrayInput -> 
+            val trades = input.readVarIntArray { arrayInput ->
                 val tradeDisabled = arrayInput.readBoolean()
                 val nbTradeUses = arrayInput.readInt()
                 val maximumNbTradeUses = arrayInput.readInt()
@@ -49,7 +49,8 @@ data class TradeListPacket(
 
         override fun serialize(output: MinecraftProtocolSerializeInterface<*>, value: TradeListPacket) {
             output.writeVarInt(value.windowId)
-            output.writeVarIntArray(value.trades) { arrayValue, arrayOutput -> 
+
+            output.writeVarIntArray(value.trades) { arrayValue, arrayOutput ->
                 arrayOutput.writeBoolean(arrayValue.tradeDisabled)
                 arrayOutput.writeInt(arrayValue.nbTradeUses)
                 arrayOutput.writeInt(arrayValue.maximumNbTradeUses)
@@ -58,6 +59,7 @@ data class TradeListPacket(
                 arrayOutput.writeFloat(arrayValue.priceMultiplier)
                 arrayOutput.writeInt(arrayValue.demand)
             }
+
             output.writeVarInt(value.villagerLevel)
             output.writeVarInt(value.experience)
             output.writeBoolean(value.isRegularVillager)
@@ -67,15 +69,15 @@ data class TradeListPacket(
 }
 
 /**
- * TradeListPacketTrades | trades
+ * TradeListPacketTrades
  *
- * @property tradeDisabled tradeDisabled
- * @property nbTradeUses nbTradeUses
- * @property maximumNbTradeUses maximumNbTradeUses
- * @property xp xp
- * @property specialPrice specialPrice
- * @property priceMultiplier priceMultiplier
- * @property demand demand
+ * @param tradeDisabled tradeDisabled
+ * @param nbTradeUses nbTradeUses
+ * @param maximumNbTradeUses maximumNbTradeUses
+ * @param xp xp
+ * @param specialPrice specialPrice
+ * @param priceMultiplier priceMultiplier
+ * @param demand demand
 */
 data class TradeListPacketTrades(
     val tradeDisabled: Boolean,

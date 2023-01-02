@@ -7,15 +7,15 @@ import io.layercraft.packetlib.serialization.MinecraftProtocolSerializeInterface
 /**
  * Update Light | 0x24 | play | clientbound
  *
- * @property chunkX chunkX
- * @property chunkZ chunkZ
- * @property trustEdges trustEdges
- * @property skyLightMask skyLightMask
- * @property blockLightMask blockLightMask
- * @property emptySkyLightMask emptySkyLightMask
- * @property emptyBlockLightMask emptyBlockLightMask
- * @property skyLight skyLight
- * @property blockLight blockLight
+ * @param chunkX chunkX
+ * @param chunkZ chunkZ
+ * @param trustEdges trustEdges
+ * @param skyLightMask skyLightMask
+ * @param blockLightMask blockLightMask
+ * @param emptySkyLightMask emptySkyLightMask
+ * @param emptyBlockLightMask emptyBlockLightMask
+ * @param skyLight skyLight
+ * @param blockLight blockLight
  * @see <a href="https://wiki.vg/index.php?title=Protocol&oldid=17873#Update_Light">https://wiki.vg/Protocol#Update_Light</a>
  */
 
@@ -28,8 +28,8 @@ data class UpdateLightPacket(
     val blockLightMask: List<Long>, // varint array
     val emptySkyLightMask: List<Long>, // varint array
     val emptyBlockLightMask: List<Long>, // varint array
-    val skyLight: List<List<UByte>>, // varint array
-    val blockLight: List<List<UByte>>, // varint array
+    val skyLight: List<UByte>, // varint array
+    val blockLight: List<UByte>, // varint array
 ) : ClientBoundPacket {
     companion object : PacketSerializer<UpdateLightPacket> {
         override fun deserialize(input: MinecraftProtocolDeserializeInterface<*>): UpdateLightPacket {
@@ -40,8 +40,8 @@ data class UpdateLightPacket(
             val blockLightMask = input.readVarIntArray { arrayInput -> arrayInput.readLong() }
             val emptySkyLightMask = input.readVarIntArray { arrayInput -> arrayInput.readLong() }
             val emptyBlockLightMask = input.readVarIntArray { arrayInput -> arrayInput.readLong() }
-            val skyLight = input.readVarIntArray { arrayInput -> arrayInput.readVarIntArray { arrayInput -> arrayInput.readUByte() } }
-            val blockLight = input.readVarIntArray { arrayInput -> arrayInput.readVarIntArray { arrayInput -> arrayInput.readUByte() } }
+            val skyLight = input.readVarIntArray { arrayInput -> arrayInput.readUByte() }
+            val blockLight = input.readVarIntArray { arrayInput -> arrayInput.readUByte() }
 
             return UpdateLightPacket(chunkX, chunkZ, trustEdges, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, skyLight, blockLight)
         }
@@ -54,8 +54,8 @@ data class UpdateLightPacket(
             output.writeVarIntArray(value.blockLightMask) { arrayValue, arrayOutput -> arrayOutput.writeLong(arrayValue) }
             output.writeVarIntArray(value.emptySkyLightMask) { arrayValue, arrayOutput -> arrayOutput.writeLong(arrayValue) }
             output.writeVarIntArray(value.emptyBlockLightMask) { arrayValue, arrayOutput -> arrayOutput.writeLong(arrayValue) }
-            output.writeVarIntArray(value.skyLight) { arrayValue, arrayOutput -> arrayOutput.writeVarIntArray(arrayValue) { arrayValue, arrayOutput -> arrayOutput.writeUByte(arrayValue) } }
-            output.writeVarIntArray(value.blockLight) { arrayValue, arrayOutput -> arrayOutput.writeVarIntArray(arrayValue) { arrayValue, arrayOutput -> arrayOutput.writeUByte(arrayValue) } }
+            output.writeVarIntArray(value.skyLight) { arrayValue, arrayOutput -> arrayOutput.writeUByte(arrayValue) }
+            output.writeVarIntArray(value.blockLight) { arrayValue, arrayOutput -> arrayOutput.writeUByte(arrayValue) }
         }
     }
 }

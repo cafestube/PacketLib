@@ -7,9 +7,9 @@ import java.util.UUID
 /**
  * Login Success | 0x02 | login | clientbound
  *
- * @property uuid uuid
- * @property username username
- * @property properties properties
+ * @param uuid uuid
+ * @param username username
+ * @param properties list of SuccessPacketProperties
  * @see <a href="https://wiki.vg/index.php?title=Protocol&oldid=17873#Login_Success">https://wiki.vg/Protocol#Login_Success</a>
  */
 
@@ -23,7 +23,7 @@ data class SuccessPacket(
         override fun deserialize(input: MinecraftProtocolDeserializeInterface<*>): SuccessPacket {
             val uuid = input.readUUID()
             val username = input.readString()
-            val properties = input.readVarIntArray { arrayInput -> 
+            val properties = input.readVarIntArray { arrayInput ->
                 val name = arrayInput.readString()
                 val value = arrayInput.readString()
                 val hasSignature = arrayInput.readBoolean()
@@ -38,7 +38,8 @@ data class SuccessPacket(
         override fun serialize(output: MinecraftProtocolSerializeInterface<*>, value: SuccessPacket) {
             output.writeUUID(value.uuid)
             output.writeString(value.username)
-            output.writeVarIntArray(value.properties) { arrayValue, arrayOutput -> 
+
+            output.writeVarIntArray(value.properties) { arrayValue, arrayOutput ->
                 arrayOutput.writeString(arrayValue.name)
                 arrayOutput.writeString(arrayValue.value)
                 arrayOutput.writeBoolean(arrayValue.hasSignature)
@@ -49,12 +50,12 @@ data class SuccessPacket(
 }
 
 /**
- * SuccessPacketProperties | properties
+ * SuccessPacketProperties
  *
- * @property name name
- * @property value value
- * @property hasSignature signature is present
- * @property signature signature
+ * @param name name
+ * @param value value
+ * @param hasSignature signature is present
+ * @param signature signature
 */
 data class SuccessPacketProperties(
     val name: String,
