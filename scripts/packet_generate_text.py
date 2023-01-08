@@ -110,7 +110,7 @@ kotlin_types_wrapper = {
     },
     "entityMetadataLoop": "native",
     "topBitSetTerminatedArray": "native",
-    "bitfield": "native",
+    "bitfield": "own_impl",
     "slot": "native",
     "entityMetadata": "native",
     "previousMessages": "native",
@@ -304,6 +304,44 @@ class PacketGeneratorNew:
             "extra_classes": []
         }
 
+    def generate_bitfield(self, field_name: str, field_data: list, infos: dict) -> dict[str, list[Any]]:
+        class_fields = []
+        class_serialize = []
+        class_deserialize = []
+        class_var_list = []
+        class_docs = []
+        class_other_imports = []
+
+        field_var_name = camel_case(field_name)
+
+        info_deserialize_var_name = infos["deserialize_var_name"] if "deserialize_var_name" in infos else "input"
+        info_serialize_var_name = infos["serialize_var_name"] if "serialize_var_name" in infos else "output"
+        info_serialize_value_var_type = infos["serialize_value_var_type"] if "serialize_value_var_type" in infos else "value"
+
+        bytes = 0
+        docs = []
+        for bitfield in field_data:
+            bytes += bitfield["size"]
+            docs += [f"Name: {bitfield['name']}, Size: {bitfield['size']}, Signed: {bitfield['signed']}"]
+
+        class_fields += [f"val {field_var_name}: Bitfield,"]
+        class_deserialize += [f"val {field_var_name} = Bitfield.valueOf({info_deserialize_var_name}.readBytes({bytes}))"]
+        class_serialize += [f"{info_serialize_var_name}.writeBytes({info_serialize_value_var_type}.{field_var_name}.toByteArray())"]
+        class_var_list += [field_var_name]
+        docs_str = " | ".join(docs)
+        class_docs += [f" * @param {field_var_name} {field_name} ({docs_str})"]
+        class_other_imports = ["import io.layercraft.packetlib.types.Bitfield"]
+
+        return {
+            "fields": class_fields,
+            "serialize": class_serialize,
+            "deserialize": class_deserialize,
+            "var_list": class_var_list,
+            "docs": class_docs,
+            "other_imports": class_other_imports,
+            "extra_classes": []
+        }
+
     def generate_basic_type_array(self, field_name: str, array_type: str, infos: dict) -> Optional[dict[str, list[Any]]]:
         class_fields = []
         class_serialize = []
@@ -326,11 +364,11 @@ class PacketGeneratorNew:
         kotlin_type_serialize = kotlin_type["serialize"]
         kotlin_type_deserialize = kotlin_type["deserialize"]
 
-        field_comment = "of " + kotlin_type["comment"] if "comment" in kotlin_type else ""
+        field_comment = " of " + kotlin_type["comment"] if "comment" in kotlin_type else ""
 
-        class_fields += [f"val {field_var_name}: List<{kotlin_type_str}>, // varint array {field_comment}"]
+        class_fields += [f"val {field_var_name}: List<{kotlin_type_str}>, // varint array{field_comment}"]
         class_deserialize += [f"val {field_var_name} = {info_deserialize_var_name}.readVarIntArray {{ arrayInput -> arrayInput.{kotlin_type_deserialize} }}"]
-        class_serialize += [f"{info_serialize_var_name}.writeVarIntArray({info_serialize_value_var_type}.{field_var_name}) {{ arrayValue, arrayOutput -> arrayOutput.{kotlin_type_serialize % 'arrayValue'}}}"]
+        class_serialize += [f"{info_serialize_var_name}.writeVarIntArray({info_serialize_value_var_type}.{field_var_name}) {{ arrayValue, arrayOutput -> arrayOutput.{kotlin_type_serialize % 'arrayValue'} }}"]
         class_var_list += [field_var_name]
         class_docs += [f" * @param {field_var_name} {field_name}"]
 
@@ -458,6 +496,9 @@ data class {class_name}(
             "extra_classes": []
         }
 
+        if "countType" not in array:
+            return clazz
+
         count_type = array["countType"]
         array_type = array["type"]
         array_type_type = type(array_type)
@@ -559,17 +600,22 @@ data class {class_name}(
                 if field_sub_type_name == "array":
                     print("Not supported yet")
                 elif field_sub_type_name == "switch":
-                    #return_value = self.generate_switch(field_name, field_type, infos)
+                    return_value = self.generate_switch(field_name, field_type, infos)
+                    self.add_to_clazz_field(return_value, clazz)
                     pass
+                elif field_sub_type_name == "bitfield":
+                    print("Not supported yet")
                 else:
-                    print(field_sub_type_name)
-                    #raise Exception("Not supported")
+                    raise Exception(f"Not supported yet: {field_sub_type_name}")
             else:
-                raise Exception("Not supported")
+                raise Exception(f"Not supported yet: {field_type_type}")
 
         return clazz
 
     def generate_switch(self, field_name: str, switch: dict, infos: dict) -> dict:
+        if type(switch) is list:
+            switch = switch[1]
+
         clazz = {
             "fields": [],
             "serialize": [],
@@ -585,6 +631,9 @@ data class {class_name}(
         info_serialize_value_var_type = infos["serialize_value_var_type"] if "serialize_value_var_type" in infos else "value"
 
         compare_to_field = switch["compareTo"].replace("../", "")
+        if "/" in compare_to_field:
+            return clazz
+
         compare_to_field_type = ""
         compare_to_field_var_name = camel_case(compare_to_field)
         compare_to_field_var_name_with_value = f"{info_serialize_value_var_type}.{compare_to_field_var_name}"
@@ -623,6 +672,9 @@ data class {class_name}(
             if field_value == ['buffer', {'countType': 'varint'}]:
                 field_value = "buffer"
 
+            if field_value == ['option', ['buffer', {'countType': 'varint'}]]:
+                field_value = ['option', 'buffer']
+
             field_type_type = type(field_value)
 
             if field_type_type is str:
@@ -646,12 +698,12 @@ data class {class_name}(
                     kotlin_type_fix = kotlin_type
                     boolean_field_var_name = ("has" + field_var_name[0].upper() + field_var_name[1:])
 
-                    #Get last field
+                    # Get last field
                     if len(clazz["fields"]) >= 1 and boolean_field_var_name not in clazz["fields"][-1] or len(clazz["fields"]) == 0:
                         build_other_switch = {
                             "compareTo": "../" + compare_to_field,
                             "fields": {x: "bool" for x in fields.keys()},
-                         }
+                        }
 
                         return_value = self.generate_switch(boolean_field_var_name, build_other_switch, infos)
                         self.add_to_clazz_field(return_value, clazz)
@@ -660,23 +712,61 @@ data class {class_name}(
                     serialize += [f"{field} -> if ({info_serialize_value_var_type}.{boolean_field_var_name}!!) {info_serialize_var_name}.{kotlin_type['serialize'] % (info_serialize_value_var_type + '.' + field_var_name + '!!')}"]
                     continue
 
+                # Array?
+                if field_value[0] == "array":
+                    return_value = self.generate_array(field_name, field_value[1], infos, 1)
+                    if len(return_value["fields"]) > 0:
+                        fields_build = return_value["fields"][0].split(", // ", 1)
+                        fields_build_second = f" // {fields_build[1]}" if len(return_value["fields"]) > 1 else ""
+                        fields_build = fields_build[0] + f"?,{fields_build_second}"
+
+                        if fields_build not in clazz["fields"]:
+                            clazz["fields"] += [fields_build]
+                            clazz["other_imports"] += return_value["other_imports"]
+                            clazz["extra_classes"] += return_value["extra_classes"]
+                            clazz["var_list"] += return_value["var_list"]
+                            clazz["docs"] += return_value["docs"]
+
+                        deserialize_str = return_value['deserialize'][0].split(" = ", 1)[1]
+                        serialize_build = return_value['serialize'][0].split(") {", 1)
+                        serialize_str = serialize_build[0] + "!!) {" + serialize_build[1]
+
+                        deserialize += [f"{field} -> {deserialize_str}"]
+                        serialize += [f"{field} -> {serialize_str}"]
+                    continue
+
                 other_switch = True
                 other_switch_value = field_value
-                for field_container in field_value[1]:
+                if field_value[0] == "container":
+                    for field_container in field_value[1]:
+                        inside = False
+                        for it in other_switch_value_dict:
+                            if it["value"] == field_container:
+                                inside = True
+                                break
 
-                    inside = False
-                    for it in other_switch_value_dict:
-                        if it["value"] == field_container:
-                            inside = True
-                            break
+                        if inside is False:
+                            other_switch_value_dict += [{"value": field_container, "keys": [field]}]
+                        else:
+                            for x in other_switch_value_dict:
+                                if x["value"] == field_container:
+                                    x["keys"] += [field]
+                elif field_value[0] == "option":
+                    for field_container in field_value[1][1]:
+                        inside = False
+                        for it in other_switch_value_dict:
+                            if it["value"] == field_container:
+                                inside = True
+                                break
 
-                    if inside is False:
-                        print("Adding field to dict")
-                        other_switch_value_dict += [{"value": field_container, "keys": [field]}]
-                    else:
-                        for x in other_switch_value_dict:
-                            if x["value"] == field_container:
-                                x["keys"] += [field]
+                        if inside is False:
+                            other_switch_value_dict += [{"value": field_container, "keys": [field]}]
+                        else:
+                            for x in other_switch_value_dict:
+                                if x["value"] == field_container:
+                                    x["keys"] += [field]
+                else:
+                    raise Exception(field_value)
 
         if other_switch:
             other_switch_value_type = other_switch_value[0]
@@ -695,12 +785,44 @@ data class {class_name}(
 
                     return_value = self.generate_switch(field_name, build_other_switch, infos)
                     self.add_to_clazz_field(return_value, clazz)
-            elif other_switch_value_type == "array":
-                print("Not supported yet")
             elif other_switch_value_type == "option":
-                print("Not supported yet")
+                other_switch_value_type = other_switch_value[1][0]
+                if other_switch_value_type == "container":
+                    for field in other_switch_value_dict:
+                        field_info = field['value']
+                        field_keys = field['keys']
+
+                        if type(field_info) is list:
+                            for field_sub in field_info:
+                                field_name = field_sub['name']
+                                field_type = [
+                                    "option",
+                                    field_sub['type']
+                                ]
+
+                                build_other_switch = {
+                                    "compareTo": switch["compareTo"],
+                                    "fields": {x: field_type for x in field_keys}
+                                }
+
+                                return_value = self.generate_switch(field_name, build_other_switch, infos)
+                                self.add_to_clazz_field(return_value, clazz)
+
+                        else:
+                            field_name = field_info['name']
+                            field_type = [
+                                "option",
+                                field_info['type']
+                            ]
+
+                            build_other_switch = {
+                                "compareTo": switch["compareTo"],
+                                "fields": {x: field_type for x in field_keys}
+                            }
+
+                            return_value = self.generate_switch(field_name, build_other_switch, infos)
+                            self.add_to_clazz_field(return_value, clazz)
             else:
-                print(other_switch_value_type)
                 raise Exception("Not supported")
             return clazz
 
@@ -785,7 +907,7 @@ data class {class_name}(
                     field_type = field[0]
                     field = field[1]
                     if field_type == "array":
-                        pass
+                        print("Option array not supported yet")
                     elif field_type == "container":
                         return_value = self.generate_option_container(field_name, field, infos)
                     else:
@@ -795,7 +917,6 @@ data class {class_name}(
             elif field_type == "buffer":
                 buffer_count_type = field["countType"]
                 if buffer_count_type == "varint":
-                    print("Buffer varint")
                     return_value = self.generate_basic_type(field_name, "buffer", infos)
                 else:
                     raise Exception("Not supported")
@@ -803,6 +924,8 @@ data class {class_name}(
                 return_value = self.generate_switch(field_name, field, infos)
             elif field_type == "particleData":
                 pass
+            elif field_type == "bitfield":
+                return_value = self.generate_bitfield(field_name, field, infos)
             else:
                 print("##" + str(field))
                 # raise Exception("Unknown fields type: " + field_type)
