@@ -3,15 +3,35 @@ import os
 import requests
 import packet_generate_text
 
+versions = {
+    "1.19.3": ("https://raw.githubusercontent.com/Layercraft/minecraft-data/master/data/pc/1.19.3/protocol.json", "18067"),
+    "1.19.2": ("https://raw.githubusercontent.com/Layercraft/minecraft-data/master/data/pc/1.19.2/protocol.json", "17873"),
+    "1.19.1": ("https://raw.githubusercontent.com/Layercraft/minecraft-data/master/data/pc/1.19.1/protocol.json", "17873"),
+    "1.19": ("https://raw.githubusercontent.com/Layercraft/minecraft-data/master/data/pc/1.19/protocol.json", "17753"),
+    "1.18.2": ("https://raw.githubusercontent.com/Layercraft/minecraft-data/master/data/pc/1.18.1/protocol.json", "17499"),
+    "1.18.1": ("https://raw.githubusercontent.com/Layercraft/minecraft-data/master/data/pc/1.18.1/protocol.json", "17341"),
+    "1.18": ("https://raw.githubusercontent.com/Layercraft/minecraft-data/master/data/pc/1.18/protocol.json", "17341"),
+    "1.17.1": ("https://raw.githubusercontent.com/Layercraft/minecraft-data/master/data/pc/1.17.1/protocol.json", "16918"),
+    "1.17": ("https://raw.githubusercontent.com/Layercraft/minecraft-data/master/data/pc/1.17/protocol.json", "16866"),
+    "1.16.5": ("https://raw.githubusercontent.com/Layercraft/minecraft-data/master/data/pc/1.16.5/protocol.json", "16681"),
+    "1.16.4": ("https://raw.githubusercontent.com/Layercraft/minecraft-data/master/data/pc/1.16.4/protocol.json", "16317"),
+    "1.16.3": ("https://raw.githubusercontent.com/Layercraft/minecraft-data/master/data/pc/1.16.3/protocol.json", "16091"),
+    "1.16.2": ("https://raw.githubusercontent.com/Layercraft/minecraft-data/master/data/pc/1.16.2/protocol.json", "16001"),
+    "1.16.1": ("https://raw.githubusercontent.com/Layercraft/minecraft-data/master/data/pc/1.16.1/protocol.json", "15895"),
+    "1.16": ("https://raw.githubusercontent.com/Layercraft/minecraft-data/master/data/pc/1.16/protocol.json", "15878"),
+    "1.15.2": ("https://raw.githubusercontent.com/Layercraft/minecraft-data/master/data/pc/1.15.2/protocol.json", "16067"),
+    "custom": ("", "")
+}
+
 src = "src/main/kotlin"
+# First Argument: Version
+version = "custom" if len(os.sys.argv) < 2 else os.sys.argv[1]
+data_url = versions[version][0]
+wikivg_url_end = "&oldid=" + versions[version][1]
 
 wikivg_url = "https://wiki.vg/index.php?title=Protocol"
-wikivg_url_end = "&oldid=17873"
 wikivg_text = requests.get(wikivg_url + wikivg_url_end).text
 
-data_url = "https://raw.githubusercontent.com/PrismarineJS/minecraft-data/master/data/pc/1.19.2/protocol.json"
-
-version = data_url.split("/")[-2]
 version_underline = version.replace(".", "_")
 
 minecraft_codec = []
@@ -28,10 +48,9 @@ def codec_generate():
         package_string = packet["package"]
         status = packet["status"]
         id = packet["id"]
+        direction_string = "clientBound" if packet["direction"] == "clientbound" else "serverBound"
 
-        direction_string = "registerClientBoundPacket" if packet[
-                                                              "direction"] == "clientbound" else "registerServerBoundPacket"
-        add_text = f"""                    .{direction_string}({id}, {package_string}.{class_name}::class, {package_string}.{class_name}) \n"""
+        add_text = f"""                    {direction_string}({id}, {package_string}.{class_name}::class, {package_string}.{class_name}) \n"""
 
         if status == "handshaking":
             handshaking_text += add_text
@@ -42,25 +61,30 @@ def codec_generate():
         elif status == "play":
             play_text += add_text
 
+    handshaking_text = handshaking_text[:-1]
+    login_text = login_text[:-1]
+    status_text = status_text[:-1]
+    play_text = play_text[:-1]
+
     text = f"""
     val V{version_underline}: MinecraftCodec =
-        MinecraftCodec.create(ProtocolVersion.V{version_underline})
-            .registerPacketRegistry(
-                PacketState.HANDSHAKING,
-                MinecraftCodecRegistry.create()
-{handshaking_text})
-            .registerPacketRegistry(
-                PacketState.LOGIN,
-                MinecraftCodecRegistry.create()
-{login_text})
-            .registerPacketRegistry(
-                PacketState.STATUS,
-                MinecraftCodecRegistry.create()
-{status_text})
-            .registerPacketRegistry(
-                PacketState.PLAY,
-                MinecraftCodecRegistry.create()
-{play_text})
+        codec(ProtocolVersion.V{version_underline}) {{
+            packets(PacketState.HANDSHAKING) {{
+{handshaking_text}
+            }}
+
+            packets(PacketState.LOGIN) {{
+{login_text}
+            }}
+
+            packets(PacketState.STATUS) {{
+{status_text}
+            }}
+
+            packets(PacketState.PLAY) {{
+{play_text}
+            }}
+        }}
     """
 
     # write to codec.kt.tmp file
@@ -230,7 +254,12 @@ class PacketGenerator:
 
         print(f"Generate: {self.package}.{self.class_name} ({self.id})")
 
-        fields = self.generate_fields()
+        try :
+            fields = self.generate_fields()
+        except Exception as e:
+            print(f"Error: {self.package}.{self.class_name} ({self.id})")
+            print(e)
+            return "//TODO"
 
         class_fields_str = fields["class_fields_str"]
         class_serialize_str = fields["class_serialize_str"]
@@ -253,8 +282,8 @@ class PacketGenerator:
         class_str = f"""package {self.package}
 
 import io.layercraft.packetlib.packets.*
-import io.layercraft.packetlib.serialization.MinecraftProtocolDeserializeInterface
-import io.layercraft.packetlib.serialization.MinecraftProtocolSerializeInterface
+import io.layercraft.packetlib.serialization.MCProtocolDeserializer
+import io.layercraft.packetlib.serialization.MCProtocolSerializer
 {class_other_imports_str}
 /**
  * {wikivg_name} | {id} | {status} | {direction}
@@ -263,18 +292,17 @@ import io.layercraft.packetlib.serialization.MinecraftProtocolSerializeInterface
  * @see <a href="https://wiki.vg/index.php?title=Protocol{wikivg_url_end}#{wikivg_id}">https://wiki.vg/Protocol#{wikivg_id}</a>
  */
 
-@MinecraftPacket(id = {id}, state = PacketState.{status.upper()}, direction = PacketDirection.{direction.upper()})
 {"data" if len(class_fields_str) > 1 else ""} class {class_name}(
     {class_fields_str}
 ) : {direction_interface} {{
     companion object : PacketSerializer<{class_name}> {{
-        override fun deserialize(input: MinecraftProtocolDeserializeInterface<*>): {class_name} {{
+        override fun deserialize(input: MCProtocolDeserializer<*>): {class_name} {{
             {class_deserialize_str}
 
             return {class_name}({class_var_list_str})
         }}
 
-        override fun serialize(output: MinecraftProtocolSerializeInterface<*>, value: {class_name}) {{
+        override fun serialize(output: MCProtocolSerializer<*>, value: {class_name}) {{
             {class_serialize_str}
         }}
     }}

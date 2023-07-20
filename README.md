@@ -3,22 +3,82 @@
 [![Gradle Publish](https://github.com/Layercraft/PacketLib/actions/workflows/gradle-publish.yml/badge.svg)](https://github.com/Layercraft/PacketLib/actions/workflows/gradle-publish.yml)
 [![Deploy Dokka KDocs with GitHub Pages](https://github.com/Layercraft/PacketLib/actions/workflows/kdocs.yml/badge.svg)](https://github.com/Layercraft/PacketLib/actions/workflows/kdocs.yml)
 
-# PacketLib - A library for creating and parsing packets
-
-## Warning: Not safe for use currently.
+# PacketLib - A library for serializing Minecraft Packets typesafe in Kotlin
 
 KDocs: [PacketLib KDocs](https://packetlib.kdocs.layercraft.io/)
 
-## Prewords
+Type Safe generated Minecraft Protocol Packets in Kotlin.
+For current versions: 1.19.3(also 1.19.4).
+But some complex Packets are not implemented yet.
 
+### Prewords
 Special Thanks to [wiki.vg](https://wiki.vg) for the protocol documentation.
 And to [PrismarineJS/minecraft-data](https://github.com/PrismarineJS/minecraft-data) for the protocol data as json.
 
 ## Repo
 
-### Github Packages:
+### Jitpack:
 
 <details open>
+<summary>Gradle Kotlin</summary>
+
+```kotlin
+repositories {
+    maven { url = uri("https://jitpack.io") }
+}
+
+dependencies {
+    implementation("com.github.layercraft:packetlib:0.0.23")
+}
+```
+
+</details>
+
+<details>
+<summary>Gradle Groovy</summary>
+
+```groovy
+repositories {
+    maven { url = 'https://jitpack.io' }
+}
+
+dependencies {
+    compile 'com.github.layercraft:packetlib:0.0.23'
+}
+```
+
+</details>
+
+<details>
+<summary>Maven</summary>
+
+```xml
+
+<project>
+    ...
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
+    ...
+    <dependencies>
+        <dependency>
+            <groupId>com.github.layercraft</groupId>
+            <artifactId>packetlib</artifactId>
+            <version>0.0.23</version>
+        </dependency>
+    </dependencies>
+    ...
+</project>
+```
+
+</details>
+
+### Github Packages:
+
+<details>
 <summary>Gradle Kotlin</summary>
 
 ```kotlin
@@ -105,77 +165,10 @@ Settings.xml
 
 </details>
 
-### Jitpack:
 
-<details open>
-<summary>Gradle Kotlin</summary>
+## Serialization Implementations
 
-```kotlin
-repositories {
-    maven { url = uri("https://jitpack.io") }
-}
+There are no more default implementations for serialization in this library, so you have to write your own.
+But here are some old example implementations: https://gist.github.com/Newspicel/54184b844dee00a4f351e58de033e071
 
-dependencies {
-    implementation("com.github.layercraft:packetlib:0.0.23")
-}
-```
-
-</details>
-
-<details>
-<summary>Gradle Groovy</summary>
-
-```groovy
-repositories {
-    maven { url = 'https://jitpack.io' }
-}
-
-dependencies {
-    compile 'com.github.layercraft:packetlib:0.0.23'
-}
-```
-
-</details>
-
-<details>
-<summary>Maven</summary>
-
-```xml
-
-<project>
-    ...
-    <repositories>
-        <repository>
-            <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
-        </repository>
-    </repositories>
-    ...
-    <dependencies>
-        <dependency>
-            <groupId>com.github.layercraft</groupId>
-            <artifactId>packetlib</artifactId>
-            <version>0.0.23</version>
-        </dependency>
-    </dependencies>
-    ...
-</project>
-```
-
-</details>
-
-## Usage
-
-Serialize a packet to a byte array:
-
-```kotlin
-val packet = SetProtocolPacket(ProtocolVersion.V1_19_2.protocolNumber, "localhost", 25565, 1)
-
-val bytes = TranslatorAPI.encodeToByteArray(packet, SetProtocolPacket)
-```
-
-Deserialize a packet from a byte array:
-
-```kotlin
-val packet = TranslatorAPI.decodeFromByteArray(bytes, SetProtocolPacket)
-```
+So you need to implement the `MCProtocolSerializer` interface and the `MCProtocolDeserializer` interface. Then just get your Packet over the `MinecraftCodecs` and serialize it.

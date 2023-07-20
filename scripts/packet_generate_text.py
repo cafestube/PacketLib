@@ -118,6 +118,8 @@ kotlin_types_wrapper = {
     "tags": "native",
     "minecraft_smelting_format": "native",
     "ingredient": "native",
+    "game_profile": "native",
+    "chat_session": "native",
 }
 
 
@@ -418,7 +420,7 @@ data class {class_name}(
         class_deserialize_str = f"""val {field_name} = {info_deserialize_var_name}.readVarIntArray {{ arrayInput{round_str} ->
                 {extra_class_deserialize_str}
 
-                return@readVarIntArray {class_name}({extra_class_fields_str})
+                {class_name}({extra_class_fields_str})
             }}"""
 
         return class_deserialize_str
@@ -581,7 +583,7 @@ data class {class_name}(
         clazz["deserialize"] += [f"val {parent_field_boolean_var_name} = {info_deserialize_var_name}.readBoolean()"]
         clazz["serialize"] += [f"{info_serialize_var_name}.writeBoolean({info_serialize_value_var_type}.{parent_field_boolean_var_name})"]
         clazz["var_list"] += [parent_field_boolean_var_name]
-        clazz["docs"] += [f" * @property {parent_field_boolean_var_name} {parent_field_name} is present"]
+        clazz["docs"] += [f" * @param {parent_field_boolean_var_name} {parent_field_name} is present"]
 
         for field in container:
             field_name = field['name']
@@ -916,8 +918,12 @@ data class {class_name}(
                     raise Exception("Unknown option type")
             elif field_type == "buffer":
                 buffer_count_type = field["countType"]
+                buffer_count = field["count"]
                 if buffer_count_type == "varint":
                     return_value = self.generate_basic_type(field_name, "buffer", infos)
+                # If the count is a fixed value, we can generate a fixed buffer
+                elif type(buffer_count) is int:
+                    print("Fixed buffer not supported yet")
                 else:
                     raise Exception("Not supported")
             elif field_type == "switch":
